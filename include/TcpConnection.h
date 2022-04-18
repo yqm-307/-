@@ -1,7 +1,7 @@
 #include "util.h"
 
 
-class TcpConnection: boost::enable_shared_from_this<TcpConnection>
+class TcpConnection
 {
 public:
     typedef boost::shared_ptr<TcpConnection> ConnectionPtr;
@@ -15,15 +15,19 @@ public:
         client_.close();
         /*log*/
     }
+
+    tcp::socket& socket()
+    { return client_; }
+
     static ConnectionPtr create(boost::asio::io_context& ioc)
     {
         return ConnectionPtr(new TcpConnection(ioc));   //智能指针传出，由当前类控制资源
     }
 
-    void async_write(std::string msg)
-    {
-        
-    }
+
+
+private:
+
 
 private:
     tcp::socket client_;
