@@ -14,7 +14,7 @@ public:
                 [this]( TcpConnection::ConnectionPtr newconn,const boost::system::error_code&err)
                 {
                     if(err)
-                        ERROR("%s",err.message());
+                        ERROR("%s",err.message().c_str());
                     users_.push_back(newconn);
                     //todo 解析json，发送邮件
                     INFO("a new connection form %s",newconn->socket().local_endpoint().address().to_string().c_str());
