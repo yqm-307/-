@@ -17,14 +17,17 @@ public:
     //接收json数据
     int pushAJson(std::string& json);
 
-    //制作成Get请求url
-    int makeGetUrl(std::string& GetRes);
+
 
 private:
     void send();
-
+    //制作成Get请求url
+    int makeGetUrl(std::string& GetRes);
 private:
-    JsonList dates_;
+    JsonList datas_;
     boost::mutex lock_;
     CURL* curl_;
+
+    std::string key_;
+    std::string my_;
 };
