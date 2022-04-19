@@ -16,6 +16,8 @@ add_executable(server ${SOURCE})
 target_link_libraries(server
     -lboost_regex
     -lboost_thread
+    -ljsoncpp
     -lcurl
     -lpthread
+
 )

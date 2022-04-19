@@ -1,3 +1,5 @@
+#pragma once
+
 #include <boost/asio.hpp>
 #include <boost/noncopyable.hpp>
 #include "TcpConnection.h"
@@ -7,7 +9,7 @@
 class Acceptor: boost::noncopyable
 {
 public:
-    typedef boost::function<void(TcpConnection::ConnectionPtr,const boost::system::error_code&)> OnConnectCallback;
+    typedef boost::function<void(TcpConnection::ConnectionPtr)> OnConnectCallback;
 
     Acceptor(boost::asio::io_context& ioc,const tcp::endpoint& edp)
         :ioc_(ioc),
@@ -21,15 +23,11 @@ public:
             TcpConnection::ConnectionPtr conn = TcpConnection::create(ioc_);
             /*listen*/
             conn->socket() = acceptor_.accept();
-            
-                while(true)
-                {    
-                    char recvbuf[1024];
-                    memset(recvbuf,'\0',sizeof(recvbuf));
-                    conn->socket().receive(boost::asio::buffer(recvbuf));
-                    INFO("recv\n%s",recvbuf);
-                }
-            
+            char recvbuf[1024];
+            memset(recvbuf,'\0',sizeof(recvbuf));
+            conn->socket().receive(boost::asio::buffer(recvbuf));
+            INFO("recv\n%s",recvbuf);
+            onconnectcb_(conn);
         }
     }
 

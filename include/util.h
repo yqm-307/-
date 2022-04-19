@@ -1,5 +1,12 @@
+#pragma once
 #include <curl/curl.h>
+#include <jsoncpp/json/json.h>
 #include <iostream>
+#include <fstream>
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
 #include <boost/asio.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -14,6 +21,6 @@ class TcpConnection;
 typedef boost::asio::ip::tcp tcp;
 
 //typedef boost::function<void(TcpConnection::ConnectionPtr,const boost::system::error_code&)> OnConnectCallback;
-
+#define YDURL "http://api.guqb.cn/music/yx/qq.php"
 
 

@@ -1,3 +1,4 @@
+#pragma once
 #include "util.h"
 #include "acceptor.h"
 
@@ -11,10 +12,8 @@ public:
         users_()
     {
         acceptor_.setOnConnectionCallBack(
-                [this]( TcpConnection::ConnectionPtr newconn,const boost::system::error_code&err)
+                [this]( TcpConnection::ConnectionPtr newconn)
                 {
-                    if(err)
-                        ERROR("%s",err.message().c_str());
                     users_.push_back(newconn);
                     //todo 解析json，发送邮件
                     INFO("a new connection form %s",newconn->socket().local_endpoint().address().to_string().c_str());
