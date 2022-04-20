@@ -1,6 +1,8 @@
 #pragma once
 #include "util.h"
 #include "acceptor.h"
+#include "sms.h"
+
 
 class Server
 {
@@ -9,13 +11,15 @@ public:
     Server(boost::asio::io_context& ioc,tcp::endpoint&& edp)
         :ioc_(ioc),
         acceptor_(ioc,edp),
-        users_()
+        users_(),
+        sms_(ioc)
     {
         acceptor_.setOnConnectionCallBack(
                 [this]( TcpConnection::ConnectionPtr newconn)
                 {
                     users_.push_back(newconn);
                     //todo 解析json，发送邮件
+
                     INFO("a new connection form %s",newconn->socket().local_endpoint().address().to_string().c_str());
                 }
             );
@@ -34,4 +38,5 @@ private:
     boost::asio::io_context& ioc_;
     Acceptor acceptor_;
     ConnectionList users_;
+    SMSClient sms_;
 };

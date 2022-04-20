@@ -1,6 +1,14 @@
 #pragma once
 #include "util.h"
-#include "acceptor.h"
+
+
+struct Req
+{
+    std::string senduser;   //发送者邮箱
+    std::string recvuser;   //接收者邮箱
+    std::string sqm;        //qq邮箱授权码
+    std::string Data;       //数据内容
+};
 
 /**
  * @brief sms客户端
@@ -9,25 +17,40 @@
 class SMSClient
 {
 public:
-    typedef std::vector<std::string> JsonList;
+    typedef std::queue<Req> MessageQueue;
 
     SMSClient(boost::asio::io_context&);
     ~SMSClient();
     
     //接收json数据
-    int pushAJson(std::string& json);
-
-
+    void pushAJson(std::string& json);
+    
+private:
+    Req json_handle(std::string& GetRes);   //解析json
+    void close();
 
 private:
-    void send();
-    //制作成Get请求url
-    int makeGetUrl(std::string& GetRes);
+    std::string base64(std::string&);   //base64加密
+    void WorkThread_main();
+    bool workThread_login(Req&);    //登录
+    bool workThread_relogin(Req&);  //重新登录
+    //void workThread_loginoff(); //退出登录
+    bool workThread_sendData(Req&);
+    std::string workThread_sendline(std::string&); //发送一行
 private:
-    JsonList datas_;
+    boost::asio::io_context& ioc_;
+    MessageQueue mq_;
     boost::mutex lock_;
-    CURL* curl_;
+    boost::asio::ip::tcp::socket sockClient_;
+    boost::atomic_bool Connecting_;
 
-    std::string key_;
-    std::string my_;
 };
+/*
+MAIL FROM: <979336542@qq.com>
+RCPT TO:<373232355@qq.com>
+DATA
+SUBJECT:nihao
+你好
+.
+
+*/
