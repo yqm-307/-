@@ -31,7 +31,7 @@ private:
 
 private:
     std::string base64(std::string&);   //base64加密
-    void WorkThread_main();
+    static void WorkThread_main(SMSClient* th);
     bool workThread_login(Req&);    //登录
     bool workThread_relogin(Req&);  //重新登录
     //void workThread_loginoff(); //退出登录
@@ -43,6 +43,7 @@ private:
     boost::mutex lock_;
     boost::asio::ip::tcp::socket sockClient_;
     boost::atomic_bool Connecting_;
+    boost::atomic_bool timeout_;
 
 };
 /*

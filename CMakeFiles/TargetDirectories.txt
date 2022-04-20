@@ -1,0 +1,3 @@
+/home/yqm/Git/sms-server/CMakeFiles/rebuild_cache.dir
+/home/yqm/Git/sms-server/CMakeFiles/edit_cache.dir
+/home/yqm/Git/sms-server/CMakeFiles/server.dir

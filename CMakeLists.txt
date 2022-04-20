@@ -15,7 +15,12 @@ add_executable(server ${SOURCE})
 
 target_link_libraries(server
     -lboost_regex
+    -lboost_timer
+    -lboost_chrono
+    -lboost_atomic
     -lboost_thread
+    -lboost_system
+
     -ljsoncpp
     -lcurl
     -lpthread

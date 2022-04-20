@@ -1,13 +1,17 @@
 #include "../include/sms.h"
 
 using namespace boost::chrono;
-
+inline bool is_in_str(std::string& main,std::string sub)
+{
+    return (main.find(sub)!=std::string::npos);
+}
 SMSClient::SMSClient(boost::asio::io_context& ioc)
     :sockClient_(ioc),
     ioc_(ioc),
-    Connecting_(false)
+    Connecting_(false),
+    timeout_(false)
 {
-    sockClient_.non_blocking(true); //设置套接字非阻塞
+    //sockClient_.non_blocking(true); //设置套接字非阻塞
 }
 
 SMSClient::~SMSClient()
@@ -88,10 +92,7 @@ bool SMSClient::workThread_relogin(Req&conn)  //重新登录
     return workThread_login(conn);
 }
 
-inline bool is_in_str(std::string& main,std::string sub)
-{
-    return (main.find(sub)!=std::string::npos);
-}
+
 
 std::string SMSClient::workThread_sendline(std::string&line) //发送一行
 {
@@ -112,82 +113,92 @@ std::string SMSClient::workThread_sendline(std::string&line) //发送一行
     return ret;
 }
 
-void SMSClient::WorkThread_main()
+void SMSClient::WorkThread_main(SMSClient* th)
 {
     boost::asio::ip::tcp::endpoint ep(boost::asio::ip::address::from_string("157.148.54.34"),25);
-    sockClient_.async_connect(ep,std::bind([this](const boost::system::error_code& err){
+    th->sockClient_.async_connect(ep,[th](const boost::system::error_code& err){
         if(err)
         {
             ERROR("%s",err.message().c_str());
         }      
-        Connecting_.exchange(true);
-    },boost::asio::placeholders::error));  //连接上smtp.qq.com
+        th->Connecting_.exchange(true);
+    });  //连接上smtp.qq.com
      
-    while(Connecting_);   //等待到连接成功
-
-    boost::atomic_bool timeout(false);
+    while(th->Connecting_);   //等待到连接成功
 
     int t = 60;
 
     //直到超时60s没有消息退出
     while(true)
     {
-        boost::asio::steady_timer timer(ioc_,boost::asio::chrono::seconds(t)); 
+        boost::asio::steady_timer timer(th->ioc_,boost::asio::chrono::seconds(t)); 
         
 
-        if(!mq_.empty())
+        if(!th->mq_.empty())
         {
             //如果有消息，处理并重置超时时间
             timer.cancel();
-            timer.async_wait(boost::bind([&timeout](const boost::system::error_code& err,boost::asio::steady_timer& t){
+            boost::system::error_code err;
+
+            timer.async_wait(std::bind([th](boost::system::error_code& err){
                 if(err)
                     ERROR("%s",err.message().c_str());
-                timeout.exchange(true);//通知超时
-            },boost::asio::placeholders::error));
+                th->timeout_.exchange(true);//通知超时
+            },err));
 
             Req once;
             {
-                boost::lock_guard<boost::mutex> lock(lock_);
-                once = mq_.front();
-                mq_.pop();  //出队
+                boost::lock_guard<boost::mutex> lock(th->lock_);
+                once = th->mq_.front();
+                th->mq_.pop();  //出队
             }
             //执行
-            if(workThread_login(once))
+            if(th->workThread_login(once))
                 INFO("邮件发送成功");
             else
                 ERROR("邮件发送失败");
         }//mq空
 
-        if(timeout)
+        if(th->timeout_)
             INFO("timeout:%d workthread over",t);
     }
 
 
     //即将退出，关闭连接
     std::string s = "quit\n\t";
-    workThread_sendline(s);
-    close();
+    th->workThread_sendline(s);
+    th->close();
+
 }
 void SMSClient::close()
 {
     sockClient_.close();
+    Connecting_.exchange(false);
 }
 
 void SMSClient::pushAJson(std::string& json)
 {
-    boost::lock_guard<boost::mutex> lock(lock_);
-    mq_.emplace(json_handle(json));
 
+
+    if(!Connecting_)
+    {
+        boost::thread(std::bind(SMSClient::WorkThread_main,this)).detach();
+    }
+    
+    {
+        boost::lock_guard<boost::mutex> lock(lock_);
+        mq_.emplace(json_handle(json));
+    }
 }
 
 
 /*
-MAIL FROM: <979336542@qq.com>
-RCPT TO:<373232355@qq.com>
-DATA
-SUBJECT:nihao
-你好
-.
+{
+    "senduser":"",
+    "recvuser":"",
+    "sqm":"",
+    "data":""
+}
 */
 //json解析为Req
 Req SMSClient::json_handle(std::string& GetRes)
@@ -209,7 +220,7 @@ Req SMSClient::json_handle(std::string& GetRes)
 
 using namespace std;
 // base64 加密函数
-string base64(string str)   //base64加密算法
+string SMSClient::base64(string& str)   //base64加密算法
 {
     string base64_table="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     int str_len = str.length();
@@ -240,3 +251,6 @@ string base64(string str)   //base64加密算法
     }
     return res;
 }
+/*
+{"senduser":"979336542@qq.com","recvuser":"979336542@qq.com","sqm":"bsgspukoekiqbegd","data":"nihao"}
+*/

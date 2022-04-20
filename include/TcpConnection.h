@@ -10,7 +10,9 @@ public:
     TcpConnection(boost::asio::io_context& ioc)
         :client_(ioc),
         ioc_(ioc)
-    {}
+    {
+        DEBUG("TcpConnection init success!");
+    }
     ~TcpConnection()
     {
         client_.close();

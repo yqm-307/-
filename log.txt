@@ -1,0 +1,17 @@
+[20220420 16:35:18.000140] [DEBUG] acceptor init success!
+[20220420 16:35:18.000140] [DEBUG] server init success!
+[20220420 16:35:18.000140] [DEBUG] server start!
+[20220420 16:35:18.000140] [DEBUG] TcpConnection init success!
+[20220420 16:35:24.000006] [INFO] recv
+	char strTime[25] = { 0 };
+
+[20220420 16:35:24.000006] [INFO] a new connection form 127.0.0.1
+[20220420 16:35:24.000006] [DEBUG] TcpConnection init success!
+[20220420 16:35:24.000007] [INFO] [send] bytes_num: 12
+[20220420 16:35:24.000007] [INFO] [send] send once over!
+	auth login
+	
+[20220420 16:35:24.000007] [INFO] 对端关闭
+[20220420 16:35:24.000007] [INFO] [recv] The terminal receives -1 bits
+[20220420 16:35:24.000007] [FATAL] can`t login smtp.qq.com
+[20220420 16:35:24.000007] [ERROR] 邮件发送失败

@@ -3,12 +3,10 @@
 
 #include <queue>
 #include <thread>
-#include <atomic>
-#include <memory>
 #include <condition_variable>   //mutex
-#include <functional>
 #include <boost/noncopyable.hpp>
-
+#include <functional>
+#include <chrono>
 
 #ifndef LOG_LEVEL
 #define LOG_LEVEL -1

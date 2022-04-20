@@ -70,19 +70,19 @@ void Logger::Log(LOGLEVEL level ,const std::string& str)
         return;
     char log[128];
     int index = 0;
-    //当前时间  
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    time_t seconds = tv.tv_sec;
 
-    struct tm tm_time;
 
-    gmtime_r(&seconds, &tm_time);
-
+    //
+	auto now = std::chrono::system_clock::now();
+	//通过不同精度获取相差的毫秒数
+	uint64_t dis_millseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()
+		- std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count() * 1000;
+	time_t tt = std::chrono::system_clock::to_time_t(now);
+	tm* tm_time = localtime(&tt);
 
     snprintf(log, 35, "[%4d%02d%02d %02d:%02d:%02d.%06ld]",
-                    tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday,
-                    tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec, tv.tv_usec);
+                    tm_time->tm_year + 1900, tm_time->tm_mon + 1, tm_time->tm_mday,
+                    tm_time->tm_hour, tm_time->tm_min, tm_time->tm_sec, (int)dis_millseconds);
     
 
     switch (level)

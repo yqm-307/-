@@ -17,18 +17,29 @@ public:
         acceptor_.setOnConnectionCallBack(
                 [this]( TcpConnection::ConnectionPtr newconn)
                 {
-                    users_.push_back(newconn);
-                    //todo 解析json，发送邮件
-
                     INFO("a new connection form %s",newconn->socket().local_endpoint().address().to_string().c_str());
+                    std::string res = "200 ok connect";
+                    newconn->socket().async_send(boost::asio::buffer(res),
+                    [newconn](const boost::system::error_code& err,size_t bytes_transferred){
+                            if(err)
+                                ERROR("%s",err.message().c_str());
+                            else
+                                INFO("send res --> %s",newconn->socket().remote_endpoint().address().to_string().c_str());
+                    });
                 }
-            );
+        );
+
+        acceptor_.setOnRecvCallback([this](const std::string& recv){
+                sms_.pushAJson(const_cast<std::string&>(recv));
+        });
+        DEBUG("server init success!");
     }
 
 
     //服务器开始运行
     void start()
     {
+        DEBUG("server start!");
         acceptor_.listen();
     }
 
