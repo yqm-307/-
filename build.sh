@@ -23,7 +23,7 @@ build()
     
     #编译子目录
     # FILE=./test
-    # if [ -d "$FILE" ]; then
+    # if [ -d "$FILE" ]; the
     #     #存在
     #     cd test
     #     cmake .
