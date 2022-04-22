@@ -20,6 +20,20 @@ public:
 
     void listen()
     {
+
+        boost::asio::steady_timer timer(ioc_,boost::asio::chrono::seconds(5));    //超时5s
+        boost::system::error_code err;
+        boost::function<void(const boost::system::error_code&,boost::asio::steady_timer*)> timer_handle=
+        [&timer_handle](const boost::system::error_code& err,boost::asio::steady_timer* timer){
+            if(err)
+                ERROR("listen::boost::asio::steady_timer error: %s",err.message().c_str());
+            INFO("listen time out");
+            timer->cancel();
+            timer->async_wait(boost::bind(timer_handle,err,timer));
+        };
+
+        timer.async_wait(boost::bind(timer_handle,err,&timer));
+
         while(true)
         {
             TcpConnection::ConnectionPtr conn = TcpConnection::create(ioc_);

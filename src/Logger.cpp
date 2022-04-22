@@ -66,7 +66,7 @@ void Logger::Enqueue(std::string log)
 
 void Logger::Log(LOGLEVEL level ,const std::string str)
 {
-    if(level < LOG_LEVEL)
+    if(LOG_LEVEL > level)
         return;
     //char log[128];
     char log[1024];

@@ -46,7 +46,8 @@ private:
     bool workThread_relogin(Req&);  //重新登录
     //void workThread_loginoff(); //退出登录
     bool workThread_sendData(Req&);
-    std::string workThread_sendline(std::string&); //发送一行
+    size_t workThread_sendline(std::string&);   //发送一行
+    int workThread_recvive(std::string&);      //接受一行
 private:
     boost::asio::io_context& ioc_;
     MessageQueue mq_;
@@ -54,11 +55,15 @@ private:
     boost::asio::ip::tcp::socket sockClient_;
     boost::atomic_bool Connecting_;
     boost::atomic_bool timeout_;
-
+    static const std::string host;
+    static const std::string port;
 };
+
+
+
 /*
 MAIL FROM: <979336542@qq.com>
-RCPT TO:<373232355@qq.com>
+RCPT TO:<979446542@qq.com>
 DATA
 SUBJECT:nihao
 你好

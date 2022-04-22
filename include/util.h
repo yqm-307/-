@@ -1,8 +1,9 @@
 #pragma once
-//#include <curl/curl.h>
+#include <curl/curl.h>
 #include <jsoncpp/json/json.h>
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>

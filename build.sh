@@ -10,10 +10,12 @@ clear()
     rm Makefile
     rm -rf bin
     rm log.txt
+    rm config.json
 }
 
 build()
 {
+    touch config.json
     #编译整个项目目录
     mkdir bin
     cmake .

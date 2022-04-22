@@ -1,5 +1,8 @@
 #include "../include/sms.h"
 
+const std::string SMSClient::host = "smtp.qq.com";
+const std::string SMSClient::port = "25";
+
 using namespace boost::chrono;
 inline bool is_in_str(std::string& main,std::string sub)
 {
@@ -21,40 +24,58 @@ SMSClient::~SMSClient()
 bool SMSClient::workThread_login(Req& conn)    //登录流程
 {
 
-    std::string msg = "auth login\n\t";
-    std::string s = workThread_sendline(msg);
+    
+    std::string msg = "ehlo hello\r\n";
+    workThread_sendline(msg);
+    std::string s;
+    workThread_recvive(s);
+
+
+    msg = "auth login\r\n";
+    workThread_sendline(msg);
+    workThread_recvive(s);
     if(!is_in_str(s,"334")){
-        FATAL("can`t login smtp.qq.com");
+        DEBUG("auth login failed");
         return false;
     }
 
     msg = base64(conn.senduser);
-    s = workThread_sendline(msg);   //账号
+    msg+="\r\n";
+    workThread_sendline(msg);   //账号
+    workThread_recvive(s);
     if(!is_in_str(s,"334")){
-        FATAL("can`t login smtp.qq.com");
+        DEBUG("login user failed");
         return false;
     }
 
     msg = base64(conn.sqm);
-    s = workThread_sendline(msg);   //授权码
+    msg+="\r\n";
+    workThread_sendline(msg);   //授权码
+    workThread_recvive(s);
     if(!is_in_str(s,"235")){
-        FATAL("can`t login smtp.qq.com");
+        DEBUG("authorization code failed :");
         return false;
     }
 
-    msg = "ehlo hello\n\t";
-    s = workThread_sendline(msg);   
+    msg = "ehlo hello\r\n";
+    workThread_sendline(msg);   
+    workThread_recvive(s);
     
     return true;
 }
+
+
+
 
 bool SMSClient::workThread_sendData(Req& conn)
 {
     std::string msg="";
     std::string s="";
+
     //发送者
-    msg = "email from:<"+conn.senduser+">\n\t";
-    s = workThread_sendline(msg);   
+    msg = "mail from:<"+conn.senduser+">\r\n";
+    workThread_sendline(msg);   
+    workThread_recvive(s);
     if(!is_in_str(s,"250")){
         FATAL("Format error");
         return false;
@@ -62,7 +83,8 @@ bool SMSClient::workThread_sendData(Req& conn)
 
     //接收者
     msg = "rcpt to:<"+conn.recvuser+">\r\n";
-    s = workThread_sendline(msg);
+    workThread_sendline(msg);
+    workThread_recvive(s);
     if(!is_in_str(s,"250")){
         FATAL("Format error");
         return false;
@@ -70,16 +92,21 @@ bool SMSClient::workThread_sendData(Req& conn)
 
     //提示开始传输数据
     msg = "DATA\r\n";
-    s = workThread_sendline(msg);
+    workThread_sendline(msg);
+    workThread_recvive(s);
     if(!is_in_str(s,"354")){
         FATAL("Format error");
         return false;
     }
 
-    //传输正文
-    msg = conn.Data+"\r\n.\r\n";
+    //传输正文  一行一行传输
+    msg = conn.Data+"\r\n";
+    workThread_sendline(msg);
+    //传输结束
+    msg = "\r\n.\r\n";
     s = workThread_sendline(msg);
-    if(!is_in_str(s,"250")){
+    workThread_recvive(s);
+    if(!is_in_str(s,"queue")){
         FATAL("Format error");
         return false;
     }
@@ -93,24 +120,26 @@ bool SMSClient::workThread_relogin(Req&conn)  //重新登录
 }
 
 
-
-std::string SMSClient::workThread_sendline(std::string&line) //发送一行
+int SMSClient::workThread_recvive(std::string& ret)
 {
-    std::string ret="";
+    char p[1024];
+    int n =sockClient_.receive(boost::asio::buffer(p));
+    ret = p;
+    INFO("[recv] %s",ret.c_str());
+    return n;
+}
+
+
+size_t SMSClient::workThread_sendline(std::string&line) //发送一行
+{
     int nbyte_to_send = 0;
     while(nbyte_to_send != line.size())
     {
         nbyte_to_send+=sockClient_.send(boost::asio::buffer(std::string(line.begin()+nbyte_to_send,line.end())));
-        INFO("[send] bytes_num: %d",nbyte_to_send);
+        //INFO("[send] bytes_num: %d",nbyte_to_send);
     }
-    INFO("[send] send once over!\n\t%s",line.c_str());
-    
-    //接收res
-    int n = sockClient_.receive(boost::asio::buffer(ret));
-    if(n = EOF)
-        INFO("对端关闭");
-    INFO("[recv] The terminal receives %d bits",n);
-    return ret;
+    INFO("[send] %s",line.c_str());
+    return nbyte_to_send;
 }
 //重新设置超时时间
 #define TimerReSet(th,timer,t)  \
@@ -139,20 +168,12 @@ std::string SMSClient::workThread_sendline(std::string&line) //发送一行
 void SMSClient::WorkThread_main(SMSClient* th)
 {
     //一、连接远端 smtp.qq.com
-    //小坑，from_string返回临时值，endpoint没有右值构造
     boost::asio::ip::tcp::endpoint ep(boost::asio::ip::address::from_string("157.148.54.34"),25);
-    th->sockClient_.async_connect(ep,[th](const boost::system::error_code& err){
-        if(err)
-        {
-            ERROR("%s",err.message().c_str());
-        }      
-        INFO("async_connection is success!");
-        th->Connecting_.exchange(true);
-    });  //连接上smtp.qq.com
-    
-
-    //todo: 可以处理其他事务
-    while(th->Connecting_);   //，阻塞等待到连接成功，所以Connection用阻塞和非阻塞都无所谓，但是没用过就尝试一下
+    th->sockClient_.connect(ep);
+    INFO("smtp.qq.com connection is success!");
+    th->Connecting_.exchange(true);
+    std::string s;
+    th->workThread_recvive(s);
 
     int t = 60; //超时时间
     boost::asio::steady_timer timer(th->ioc_,boost::asio::chrono::seconds(t)); 
@@ -201,8 +222,9 @@ void SMSClient::WorkThread_main(SMSClient* th)
 
 
     //即将退出，关闭连接
-    std::string s = "quit\n\t";
+    s = "quit\r\n";
     th->workThread_sendline(s);
+    th->workThread_recvive(s);
     th->close();
 
 }
@@ -289,5 +311,5 @@ string SMSClient::base64(string& str)   //base64加密算法
     return res;
 }
 /*
-{"senduser":"979336542@qq.com","recvuser":"979336542@qq.com","sqm":"bsgspukoekiqbegd","data":"nihao"}
+{"senduser":"979336542@qq.com","recvuser":"979336542@qq.com","sqm":"bsgspukoekiqbegd","data":"subject:nihao\r\ni am sadioasjd\r\n"}
 */
