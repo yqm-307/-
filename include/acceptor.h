@@ -9,8 +9,8 @@
 class Acceptor: boost::noncopyable
 {
 public:
-    typedef boost::function<void(TcpConnection::ConnectionPtr)> OnConnectCallback;
-    typedef boost::function<void(std::string&&)> OnRecvCallback;
+    typedef boost::function<void(TcpConnection::ConnectionPtr,std::string&)> OnConnectCallback;
+    typedef boost::function<std::string(std::string&&)> OnRecvCallback;
     Acceptor(boost::asio::io_context& ioc,const tcp::endpoint& edp)
         :ioc_(ioc),
         acceptor_(ioc,edp)
@@ -42,9 +42,9 @@ public:
             char recvbuf[1024];
             memset(recvbuf,'\0',sizeof(recvbuf));
             conn->socket().receive(boost::asio::buffer(recvbuf));
-            onrecvcb_(std::string(recvbuf));
+            std::string res = onrecvcb_(std::string(recvbuf));
             INFO("recv\n%s",recvbuf);
-            onconnectcb_(conn);
+            onconnectcb_(conn,res);
         }
     }
 

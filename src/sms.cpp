@@ -234,20 +234,24 @@ void SMSClient::close()
     Connecting_.exchange(false);
 }
 
-void SMSClient::pushAJson(std::string& json)
+std::string SMSClient::pushAJson(std::string& json)
 {    
     {
         boost::lock_guard<boost::mutex> lock(lock_);
-        Req tmp = json_handle(json);
-        if(!tmp.checking())//解析失败
-            ERROR("recv json message is bad!");
-        else
+        Req tmp;
+        if(!json_handle(json,tmp))
+        {//解析失败
+            FATAL("json format error");
+            return "400 bad json";
+        }
+        else//成
         {
             if(!Connecting_)//work是否运行
                 boost::thread(std::bind(SMSClient::WorkThread_main,this)).detach();
             mq_.push(tmp);
-            DEBUG("正确解析一条json:%s",tmp.GetStr().c_str());
+            DEBUG("get a req success:%s",tmp.GetStr().c_str());
         }
+        return "200 OK";
     }
 }
 
@@ -260,21 +264,26 @@ void SMSClient::pushAJson(std::string& json)
     "data":""
 }
 */
+
+
 //json解析为Req
-Req SMSClient::json_handle(std::string& GetRes)
+bool SMSClient::json_handle(std::string& GetRes,Req& tmp)
 {
     Json::Reader reader;
     Json::Value root;
 
-    int ret = reader.parse(GetRes,root);
-
-    Req tmp;
+    if(!reader.parse(GetRes,root))
+    {//解析失败
+        return false;
+    }
     tmp.senduser = root["senduser"].asString();
     tmp.recvuser = root["recvuser"].asString();
     tmp.sqm = root["sqm"].asString();
     tmp.Data = root["data"].asString();
-    return tmp;
-
+    if(!tmp.checking()){
+        return false;
+    }
+    return true;
 }
 
 using namespace std;
@@ -311,5 +320,19 @@ string SMSClient::base64(string& str)   //base64加密算法
     return res;
 }
 /*
-{"senduser":"979336542@qq.com","recvuser":"979336542@qq.com","sqm":"bsgspukoekiqbegd","data":"subject:nihao\r\ni am sadioasjd\r\n"}
+
+ip: 43.138.37.7 
+port: 13000
+
+{"senduser":"登录smtp需要的邮箱","recvuser":"接收者邮箱","sqm":"需要去qq空间申请的授权吗","data":"subject:主题（直接写在主题就可,内容和主题分离还没有做）\r\n"}
+
+{"senduser":"979336542@qq.com","recvuser":"979336542@qq.com","sqm":"bsgspukoekiqbegd","data":"subject:nia\r\n"}
+
+{
+    "senduser":"",
+    "recvuser":"",
+    "sqm":"",
+    "data":""
+}   
+
 */

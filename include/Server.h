@@ -15,11 +15,10 @@ public:
         sms_(ioc)
     {
         acceptor_.setOnConnectionCallBack(
-                [this]( TcpConnection::ConnectionPtr newconn)
+                [this]( TcpConnection::ConnectionPtr newconn,std::string& err_code)
                 {
                     INFO("a new connection form %s",newconn->socket().local_endpoint().address().to_string().c_str());
-                    std::string res = "200 ok connect";
-                    newconn->socket().async_send(boost::asio::buffer(res),
+                    newconn->socket().async_send(boost::asio::buffer(err_code),
                     [newconn](const boost::system::error_code& err,size_t bytes_transferred){
                             if(err)
                                 ERROR("%s",err.message().c_str());
@@ -30,7 +29,7 @@ public:
         );
 
         acceptor_.setOnRecvCallback([this](const std::string& recv){
-                sms_.pushAJson(const_cast<std::string&>(recv));
+                return sms_.pushAJson(const_cast<std::string&>(recv));
         });
         DEBUG("server init success!");
     }

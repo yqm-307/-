@@ -33,10 +33,10 @@ public:
     ~SMSClient();
     
     //接收json数据
-    void pushAJson(std::string& json);
+    std::string pushAJson(std::string& json);
     
 private:
-    Req json_handle(std::string& GetRes);   //解析json
+    bool json_handle(std::string& GetRes,Req&);   //解析json
     void close();
 
 private:
